@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Card from '../components/Card';
 import Stepper from '../components/Stepper';
 import ScoreGauge from '../components/ScoreGauge';
 import TagList from '../components/TagList';
+import Spinner from '../components/Spinner';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
 import { api } from '../services/api';
 
 /**
@@ -16,9 +19,10 @@ function Results() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  useEffect(() => {
+  const fetchResults = useCallback(() => {
     let mounted = true;
     setLoading(true);
+    setError('');
     api.getAnalysisResults(analysisId)
       .then((res) => {
         if (!mounted) return;
@@ -34,14 +38,28 @@ function Results() {
     return () => { mounted = false; };
   }, [analysisId]);
 
+  useEffect(fetchResults, [fetchResults]);
+
   if (loading) {
-    return <div>Loading analysis results...</div>;
+    return <Spinner label="Loading analysis results..." />;
   }
   if (error) {
-    return <p style={{ color: 'var(--error)' }}>Error: {error}</p>;
+    return (
+      <EmptyState
+        title="Error Loading Results"
+        message={error}
+        actions={<Button onClick={fetchResults}>Retry</Button>}
+      />
+    );
   }
-  if (!results) {
-    return <p>No results found for this analysis.</p>;
+  if (!results || !results.result) {
+    return (
+      <EmptyState
+        title="No Results Found"
+        message="We couldn't find any results for this analysis. It may have been cancelled or failed."
+        actions={<Link to="/history" className="btn">Go to History</Link>}
+      />
+    );
   }
 
   const { score_overall: score = 0, strengths = [], gaps = [], keywords_extracted: keywords = [] } = results.result || {};

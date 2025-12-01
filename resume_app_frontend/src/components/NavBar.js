@@ -10,24 +10,30 @@ function NavBar({ theme, onToggleTheme }) {
   const isActive = (p) => pathname === p;
 
   return (
-    <nav className="navbar" role="navigation" aria-label="Main">
+    <header className="navbar" role="navigation" aria-label="Main">
       <div className="navbar-inner">
         <Link to="/" className="brand" aria-label="Resume Analyzer Home">
-          <span className="brand-badge" aria-hidden>RA</span>
+          <span className="brand-badge" aria-hidden="true">RA</span>
           <span>Resume Analyzer</span>
         </Link>
 
         <div className="nav-links">
-          <Link className="nav-link" aria-current={isActive('/') ? 'page' : undefined} to="/">Home</Link>
-          <Link className="nav-link" aria-current={isActive('/upload') ? 'page' : undefined} to="/upload">Upload</Link>
-          <Link className="nav-link" aria-current={isActive('/submit-url') ? 'page' : undefined} to="/submit-url">Profile URL</Link>
-          <Link className="nav-link" aria-current={isActive('/history') ? 'page' : undefined} to="/history">History</Link>
-          <button className="theme-toggle-btn" onClick={onToggleTheme} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}>
-            {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
+          <Link className="nav-link" to="/" aria-current={isActive('/') ? 'page' : undefined} aria-label="Home page">Home</Link>
+          <Link className="nav-link" to="/upload" aria-current={isActive('/upload') ? 'page' : undefined} aria-label="Upload resume page">Upload</Link>
+          <Link className="nav-link" to="/submit-url" aria-current={isActive('/submit-url') ? 'page' : undefined} aria-label="Submit profile URL page">Profile URL</Link>
+          <Link className="nav-link" to="/history" aria-current={isActive('/history') ? 'page' : undefined} aria-label="Analysis history page">History</Link>
+          <button 
+            className="theme-toggle-btn" 
+            onClick={onToggleTheme} 
+            aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+            <span className="sr-only">{theme === 'light' ? 'Dark' : 'Light'}</span>
           </button>
         </div>
       </div>
-    </nav>
+    </header>
   );
 }
 

@@ -6,9 +6,15 @@ import React from 'react';
  */
 function ScoreGauge({ score = 0, label = 'ATS Score' }) {
   const clamped = Math.max(0, Math.min(100, score));
-  const gradient = `conic-gradient(var(--primary) ${clamped * 3.6}deg, #e5e7eb 0deg)`;
+  const gradient = `conic-gradient(var(--primary) ${clamped * 3.6}deg, var(--border) 0deg)`;
+  
   return (
-    <div className="card" style={{ textAlign: 'center' }}>
+    <div 
+      className="card" 
+      style={{ textAlign: 'center' }} 
+      role="region" 
+      aria-label={`${label}: ${clamped} out of 100`}
+    >
       <div style={{
         width: 140, height: 140, borderRadius: '50%',
         background: gradient, margin: '0 auto', display: 'grid', placeItems: 'center'
@@ -17,10 +23,10 @@ function ScoreGauge({ score = 0, label = 'ATS Score' }) {
           width: 100, height: 100, borderRadius: '50%', background: 'var(--surface)',
           display: 'grid', placeItems: 'center', border: '1px solid var(--border)'
         }}>
-          <strong style={{ fontSize: 24 }}>{clamped}</strong>
+          <strong style={{ fontSize: 24 }} aria-hidden="true">{clamped}</strong>
         </div>
       </div>
-      <p className="subtitle" style={{ marginTop: 10 }}>{label}</p>
+      <p className="subtitle" style={{ marginTop: 10 }} aria-hidden="true">{label}</p>
     </div>
   );
 }

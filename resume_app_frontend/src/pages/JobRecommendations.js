@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import Stepper from '../components/Stepper';
 import Card from '../components/Card';
 import JobCard from '../components/JobCard';
+import Spinner from '../components/Spinner';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
 import { api } from '../services/api';
 
 /**
@@ -19,7 +22,8 @@ function JobRecommendations() {
 
   const fetchJobs = useCallback((p, append = false) => {
     setLoading(true);
-    setError('');
+    if (!append) setError('');
+    
     api.getJobRecommendations(analysisId, p)
       .then((res) => {
         const newJobs = res?.recommendations || [];
@@ -43,30 +47,53 @@ function JobRecommendations() {
     setPage(nextPage);
     fetchJobs(nextPage, true);
   };
+  
+  const renderContent = () => {
+    if (loading && page === 1) {
+      return <Spinner label="Loading job recommendations..." />;
+    }
+    
+    if (error && jobs.length === 0) {
+      return (
+        <EmptyState
+          title="Error Loading Jobs"
+          message={error}
+          actions={<Button onClick={() => fetchJobs(1, false)}>Retry</Button>}
+        />
+      );
+    }
+    
+    if (jobs.length === 0) {
+      return (
+        <EmptyState
+          title="No Jobs Found"
+          message="We couldn't find any job recommendations for this analysis. Try analyzing with a different target role."
+          actions={<Link to="/history" className="btn secondary">Back to History</Link>}
+        />
+      );
+    }
+
+    return (
+      <>
+        <div className="grid">
+          {jobs.map((j) => <JobCard key={j.id} job={j} />)}
+        </div>
+        {hasMore && (
+          <div style={{ marginTop: 16, textAlign: 'center' }}>
+            <Button variant="secondary" onClick={loadMore} loading={loading}>
+              Load More
+            </Button>
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <div>
       <Stepper steps={['Upload/URL', 'Analyze', 'Results', 'Suggestions', 'Jobs']} current={4} />
       <Card title="Job Recommendations" subtitle="Tailored opportunities based on your profile and target role">
-        {error && <p style={{ color: 'var(--error)' }}>Error: {error}</p>}
-        
-        <div className="grid">
-          {jobs.map((j) => <JobCard key={j.id} job={j} />)}
-        </div>
-        
-        {loading && page === 1 && <p>Loading jobs...</p>}
-
-        {!loading && jobs.length === 0 && !error && (
-            <p className="subtitle">No jobs found. Try adjusting your role or profile details.</p>
-        )}
-
-        {hasMore && !loading && (
-          <div style={{ marginTop: 16, textAlign: 'center' }}>
-            <button className="btn secondary" onClick={loadMore} disabled={loading}>
-              {loading ? 'Loading...' : 'Load More'}
-            </button>
-          </div>
-        )}
+        {renderContent()}
       </Card>
     </div>
   );

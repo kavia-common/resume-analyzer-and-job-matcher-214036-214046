@@ -1,8 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import Card from '../components/Card';
 import Stepper from '../components/Stepper';
 import TagList from '../components/TagList';
+import Spinner from '../components/Spinner';
+import EmptyState from '../components/EmptyState';
+import Button from '../components/Button';
 import { api } from '../services/api';
 
 /**
@@ -16,9 +20,10 @@ function Suggestions() {
   const [error, setError] = useState('');
   const [acknowledged, setAcknowledged] = useState(new Set());
 
-  useEffect(() => {
+  const fetchSuggestions = useCallback(() => {
     let mounted = true;
     setLoading(true);
+    setError('');
     api.getAnalysisResults(analysisId)
       .then((res) => {
         if (!mounted) return;
@@ -34,31 +39,49 @@ function Suggestions() {
     return () => { mounted = false; };
   }, [analysisId]);
 
+  useEffect(fetchSuggestions, [fetchSuggestions]);
+
   const handleToggleAck = async (id) => {
+    const isAcknowledged = acknowledged.has(id);
+    const optimisticState = new Set(acknowledged);
+    if (isAcknowledged) {
+      optimisticState.delete(id);
+    } else {
+      optimisticState.add(id);
+    }
+    setAcknowledged(optimisticState);
+    
     try {
       await api.acknowledgeSuggestion(analysisId, id);
-      setAcknowledged(prev => {
-        const next = new Set(prev);
-        if (next.has(id)) {
-          next.delete(id);
-        } else {
-          next.add(id);
-        }
-        return next;
-      });
+      toast.success(isAcknowledged ? 'Suggestion un-checked.' : 'Suggestion acknowledged!');
     } catch(err) {
-      setError(err.message || 'Failed to update suggestion.');
+      setAcknowledged(acknowledged); // Revert on failure
+      toast.error(err.message || 'Failed to update suggestion.');
     }
   };
 
   if (loading) {
-    return <div>Loading suggestions...</div>;
+    return <Spinner label="Loading suggestions..." />;
   }
+  
   if (error) {
-    return <p style={{ color: 'var(--error)' }}>Error: {error}</p>;
+    return (
+      <EmptyState
+        title="Error Loading Suggestions"
+        message={error}
+        actions={<Button onClick={fetchSuggestions}>Retry</Button>}
+      />
+    );
   }
-  if (!results) {
-    return <p>No suggestions found for this analysis.</p>;
+  
+  if (!results || !results.result) {
+    return (
+      <EmptyState
+        title="No Suggestions Found"
+        message="No specific suggestions are available for this analysis."
+        actions={<Link className="btn" to={`/jobs/${encodeURIComponent(analysisId)}`}>See Job Recommendations</Link>}
+      />
+    );
   }
   
   const { suggestions = [], required_skills: requiredSkills = [] } = results.result || {};
@@ -67,9 +90,8 @@ function Suggestions() {
     <div>
       <Stepper steps={['Upload/URL', 'Analyze', 'Results', 'Suggestions', 'Jobs']} current={3} />
       <Card title="Improvement Suggestions" subtitle="Actionable items to boost your ATS score and readability">
-        {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
         {suggestions.length === 0 ? (
-          <p className="subtitle">No specific suggestions at this time.</p>
+          <p className="subtitle">No specific suggestions at this time. Your profile looks great!</p>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0 }}>
             {suggestions.map((s) => (
@@ -79,9 +101,9 @@ function Suggestions() {
                   id={`sug-${s.id}`}
                   checked={acknowledged.has(s.id)}
                   onChange={() => handleToggleAck(s.id)} 
-                  style={{ marginRight: 10, width: 'auto' }}
+                  style={{ marginRight: 10, width: 'auto', height: 'auto', accentColor: 'var(--primary)' }}
                 />
-                <label htmlFor={`sug-${s.id}`} style={{ fontWeight: 'normal', margin: 0 }}>{s.suggestion}</label>
+                <label htmlFor={`sug-${s.id}`} style={{ fontWeight: 'normal', margin: 0, cursor: 'pointer' }}>{s.suggestion}</label>
               </li>
             ))}
           </ul>

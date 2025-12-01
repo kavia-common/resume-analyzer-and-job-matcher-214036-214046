@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Toaster } from 'react-hot-toast';
 import './App.css';
 import './index.css';
 import Router from './routes/Router';
@@ -24,6 +25,30 @@ function App() {
 
   return (
     <div className="app-root" style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: 'var(--surface)',
+            color: 'var(--text)',
+            border: `1px solid var(--border)`,
+            boxShadow: 'var(--shadow)',
+          },
+          success: {
+            iconTheme: {
+              primary: 'var(--success)',
+              secondary: 'white',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: 'var(--error)',
+              secondary: 'white',
+            },
+          },
+        }}
+      />
       <NavBar theme={theme} onToggleTheme={toggleTheme} />
       <main className="container">
         <Router />

@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { api } from '../services/api';
+import Button from './Button';
+import TagList from './TagList';
 
 /**
  * PUBLIC_INTERFACE
@@ -8,58 +11,66 @@ import { api } from '../services/api';
 function JobCard({ job }) {
   const { id, title, company, location, match_score, job_url, required_skills = [], status: initialStatus } = job || {};
   const [status, setStatus] = useState(initialStatus);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(null); // 'save' | 'hide' | null
 
   const handleUpdateStatus = async (newStatus) => {
-    setLoading(true);
-    setError('');
+    setLoading(newStatus);
     try {
       await api.updateRecommendationStatus(id, newStatus);
       setStatus(newStatus);
+      toast.success(`Job has been ${newStatus}.`);
     } catch (err) {
-      setError(err.message || `Failed to update status to ${newStatus}`);
+      toast.error(err.message || `Failed to update status to ${newStatus}`);
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
   const match = Math.round(match_score || 0);
 
   if (status === 'hidden') {
-    return null; // Or a placeholder indicating it's hidden
+    return null;
   }
 
   return (
-    <article className="card">
-      <h3 style={{ margin: '4px 0' }}>{title}</h3>
+    <article className="card" aria-labelledby={`job-title-${id}`}>
+      <h3 id={`job-title-${id}`} style={{ margin: '4px 0' }}>{title}</h3>
       <p className="subtitle" style={{ margin: 0 }}>{company} • {location}</p>
       
-      <div className="progress" style={{ marginTop: 12 }}>
+      <div className="progress" style={{ marginTop: 12 }} role="progressbar" aria-valuenow={match} aria-valuemin="0" aria-valuemax="100" aria-label={`Match score: ${match}%`}>
         <div className="progress-bar" style={{ width: `${Math.min(match, 100)}%` }} />
       </div>
-      <p className="subtitle" style={{ marginTop: 8 }}>Match Score: {match}%</p>
+      <p className="subtitle" style={{ marginTop: 8 }}>Match Score: <strong>{match}%</strong></p>
       
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
-        {(required_skills || []).slice(0, 8).map((s) => (
-          <span key={s} className="badge">{s}</span>
-        ))}
+      <div style={{ marginTop: 12 }}>
+        <TagList tags={(required_skills || []).slice(0, 8)} />
       </div>
       
-      {error && <p style={{ color: 'var(--error)', fontSize: 12, marginTop: 8 }}>{error}</p>}
-      
-      <div style={{ marginTop: 12, display: 'flex', gap: 10, alignItems: 'center' }}>
-        <a className="btn" href={job_url} target="_blank" rel="noreferrer">View & Apply</a>
+      <div style={{ marginTop: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
+        <a className="btn" href={job_url} target="_blank" rel="noopener noreferrer">View & Apply</a>
         {status === 'saved' ? (
-          <span className="badge" style={{borderColor: 'var(--success)', color: 'var(--success)'}}>Saved</span>
+          <span className="badge" style={{ borderColor: 'var(--success)', color: 'var(--success)' }}>Saved</span>
         ) : (
-          <button className="btn secondary" onClick={() => handleUpdateStatus('saved')} disabled={loading}>
+          <Button
+            variant="secondary"
+            onClick={() => handleUpdateStatus('saved')}
+            loading={loading === 'saved'}
+            disabled={!!loading}
+            ariaLabel="Save job"
+          >
             Save
-          </button>
+          </Button>
         )}
-        <button className="btn secondary" onClick={() => handleUpdateStatus('hidden')} disabled={loading} style={{ marginLeft: 'auto' }}>
+        <Button
+          variant="secondary"
+          onClick={() => handleUpdateStatus('hidden')}
+          loading={loading === 'hidden'}
+          disabled={!!loading}
+          style={{ marginLeft: 'auto' }}
+          ariaLabel="Hide job"
+        >
           Hide
-        </button>
+        </Button>
       </div>
     </article>
   );
