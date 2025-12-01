@@ -10,20 +10,26 @@ import { api } from '../services/api';
  */
 function UploadResume() {
   const [file, setFile] = useState(null);
-  const [role, setRole] = useState('');
+  const [targetRole, setTargetRole] = useState('');
+  const [location, setLocation] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!file) return;
     setLoading(true);
+    setError('');
     try {
-      const task = await api.uploadResume(file, role);
-      const taskId = task?.task_id || task?.id || 'task';
-      navigate(`/status/${encodeURIComponent(taskId)}`);
+      const response = await api.uploadResume(file, targetRole, location);
+      const analysisId = response?.analysis_id;
+      if (!analysisId) throw new Error('Did not receive analysis ID.');
+      navigate(`/status/${encodeURIComponent(analysisId)}`);
     } catch (err) {
-      alert(err?.message || 'Upload failed');
+      const message = err instanceof Error ? err.message : 'Upload failed. Please try again.';
+      setError(message);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -39,9 +45,14 @@ function UploadResume() {
             <input id="resume" name="resume" type="file" accept=".pdf,.doc,.docx" onChange={(e) => setFile(e.target.files?.[0] || null)} required />
           </div>
           <div className="form-row">
-            <label htmlFor="role">Target role (optional)</label>
-            <input id="role" name="role" type="text" placeholder="e.g., Frontend Engineer" value={role} onChange={(e) => setRole(e.target.value)} />
+            <label htmlFor="targetRole">Target role (optional)</label>
+            <input id="targetRole" name="targetRole" type="text" placeholder="e.g., Frontend Engineer" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} />
           </div>
+          <div className="form-row">
+            <label htmlFor="location">Target location (optional)</label>
+            <input id="location" name="location" type="text" placeholder="e.g., San Francisco, CA" value={location} onChange={(e) => setLocation(e.target.value)} />
+          </div>
+          {error && <p style={{ color: 'var(--error)', margin: '0 0 12px' }}>Error: {error}</p>}
           <button className="btn" type="submit" disabled={loading}>{loading ? 'Uploading...' : 'Start Analysis'}</button>
         </form>
       </Card>

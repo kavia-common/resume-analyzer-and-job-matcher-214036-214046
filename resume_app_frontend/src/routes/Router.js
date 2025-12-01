@@ -20,10 +20,10 @@ function Router() {
         <Route index element={<Home />} />
         <Route path="/upload" element={<UploadResume />} />
         <Route path="/submit-url" element={<SubmitProfileURL />} />
-        <Route path="/status/:taskId" element={<AnalysisStatus />} />
-        <Route path="/results/:taskId" element={<Results />} />
-        <Route path="/suggestions/:taskId" element={<Suggestions />} />
-        <Route path="/jobs/:taskId" element={<JobRecommendations />} />
+        <Route path="/status/:analysisId" element={<AnalysisStatus />} />
+        <Route path="/results/:analysisId" element={<Results />} />
+        <Route path="/suggestions/:analysisId" element={<Suggestions />} />
+        <Route path="/jobs/:analysisId" element={<JobRecommendations />} />
         <Route path="/history" element={<History />} />
         <Route path="*" element={<Home />} />
       </Routes>

@@ -10,20 +10,25 @@ import { api } from '../services/api';
  */
 function SubmitProfileURL() {
   const [url, setUrl] = useState('');
-  const [role, setRole] = useState('');
+  const [targetRole, setTargetRole] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
   const onSubmit = async (e) => {
     e.preventDefault();
     if (!url) return;
     setLoading(true);
+    setError('');
     try {
-      const task = await api.submitProfileURL(url, role);
-      const taskId = task?.task_id || task?.id || 'task';
-      navigate(`/status/${encodeURIComponent(taskId)}`);
+      const response = await api.submitProfileURL(url, targetRole);
+      const analysisId = response?.analysis_id;
+      if (!analysisId) throw new Error('Did not receive analysis ID.');
+      navigate(`/status/${encodeURIComponent(analysisId)}`);
     } catch (err) {
-      alert(err?.message || 'Submission failed');
+      const message = err instanceof Error ? err.message : 'Submission failed. Please try again.';
+      setError(message);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -39,9 +44,10 @@ function SubmitProfileURL() {
             <input id="url" name="url" type="url" placeholder="https://www.linkedin.com/in/..." required value={url} onChange={(e) => setUrl(e.target.value)} />
           </div>
           <div className="form-row">
-            <label htmlFor="role">Target role (optional)</label>
-            <input id="role" name="role" type="text" placeholder="e.g., Data Scientist" value={role} onChange={(e) => setRole(e.target.value)} />
+            <label htmlFor="targetRole">Target role (optional)</label>
+            <input id="targetRole" name="targetRole" type="text" placeholder="e.g., Data Scientist" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} />
           </div>
+          {error && <p style={{ color: 'var(--error)', margin: '0 0 12px' }}>Error: {error}</p>}
           <button className="btn" type="submit" disabled={loading}>{loading ? 'Submitting...' : 'Start Analysis'}</button>
         </form>
       </Card>

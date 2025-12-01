@@ -2,20 +2,35 @@ import ENV from '../config/env';
 
 const base = () => ENV.getApiBaseUrl();
 
-async function http(method, path, { headers = {}, body, isForm = false } = {}) {
-  const url = `${base()}${path}`;
-  const res = await fetch(url, {
+// A mock user ID until authentication is implemented.
+const MOCK_USER_ID = 1;
+
+async function http(method, path, { headers = {}, body, isForm = false, params } = {}) {
+  const usp = new URLSearchParams(params);
+  const queryString = usp.toString();
+  const url = `${base()}${path}${queryString ? `?${queryString}`: ''}`;
+
+  const config = {
     method,
     headers: isForm ? headers : { 'Content-Type': 'application/json', ...headers },
     body: isForm ? body : body ? JSON.stringify(body) : undefined,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(text || `HTTP ${res.status}`);
+  };
+
+  try {
+    const res = await fetch(url, config);
+    if (!res.ok) {
+      const errorBody = await res.json().catch(() => ({ message: `HTTP error ${res.status}` }));
+      throw new Error(errorBody.detail?.[0]?.msg || errorBody.message || `HTTP ${res.status}`);
+    }
+    const contentType = res.headers.get('content-type') || '';
+    if (contentType.includes('application/json')) return res.json();
+    // For 204 No Content
+    if (res.status === 204) return;
+    return res.text();
+  } catch (error) {
+    console.error(`API call failed: ${method} ${path}`, error);
+    throw error;
   }
-  const contentType = res.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) return res.json();
-  return res.text();
 }
 
 /**
@@ -24,40 +39,60 @@ async function http(method, path, { headers = {}, body, isForm = false } = {}) {
  */
 export const api = {
   // PUBLIC_INTERFACE
-  async uploadResume(file, role) {
+  async uploadResume(file, targetRole, location) {
     const form = new FormData();
     form.append('file', file);
-    if (role) form.append('role', role);
-    return http('POST', '/upload', { body: form, isForm: true });
+    form.append('user_id', MOCK_USER_ID);
+    if (targetRole) form.append('targetRole', targetRole);
+    if (location) form.append('location', location);
+    return http('POST', '/api/v1/resumes/upload', { body: form, isForm: true });
   },
 
   // PUBLIC_INTERFACE
-  async submitProfileURL(url, role) {
-    return http('POST', '/submit-url', { body: { url, role } });
+  async submitProfileURL(url, targetRole) {
+    return http('POST', '/api/v1/profiles/submit-url', {
+      body: { url, user_id: MOCK_USER_ID, targetRole },
+    });
   },
 
   // PUBLIC_INTERFACE
-  async getStatus(taskId) {
-    return http('GET', `/status/${encodeURIComponent(taskId)}`);
+  async getAnalysisStatus(analysisId) {
+    return http('GET', `/api/v1/analysis/${encodeURIComponent(analysisId)}/status`);
   },
 
   // PUBLIC_INTERFACE
-  async getResults(taskId) {
-    return http('GET', `/results/${encodeURIComponent(taskId)}`);
+  async getAnalysisResults(analysisId) {
+    return http('GET', `/api/v1/analysis/${encodeURIComponent(analysisId)}/results`);
+  },
+  
+  // PUBLIC_INTERFACE
+  async acknowledgeSuggestions(analysisId, suggestionIds) {
+    return http('POST', `/api/v1/analysis/${encodeURIComponent(analysisId)}/suggestions/ack`, { 
+      body: { ids: suggestionIds }
+    });
   },
 
   // PUBLIC_INTERFACE
-  async getSuggestions(taskId) {
-    return http('GET', `/suggestions/${encodeURIComponent(taskId)}`);
+  async cancelAnalysis(analysisId) {
+    return http('POST', `/api/v1/analysis/${encodeURIComponent(analysisId)}/cancel`);
   },
 
   // PUBLIC_INTERFACE
-  async getJobRecommendations(taskId) {
-    return http('GET', `/jobs/${encodeURIComponent(taskId)}`);
+  async getJobRecommendations(analysisId, page = 1) {
+    const limit = 20;
+    const offset = (page - 1) * limit;
+    return http('GET', '/api/v1/recommendations', { params: { analysisId, limit, offset } });
+  },
+  
+  // PUBLIC_INTERFACE
+  async updateRecommendationStatus(recommendationId, status) {
+     return http('PATCH', `/api/v1/recommendations/${encodeURIComponent(recommendationId)}`, {
+      params: { status },
+    });
   },
 
   // PUBLIC_INTERFACE
-  async getHistory() {
-    return http('GET', '/history');
+  async getUserAnalyses() {
+    return http('GET', `/api/v1/users/${MOCK_USER_ID}/analyses`);
   },
 };

@@ -11,21 +11,40 @@ import { api } from '../services/api';
  * Results: Displays ATS score, key findings, and next actions.
  */
 function Results() {
-  const { taskId } = useParams();
-  const [data, setData] = useState(null);
+  const { analysisId } = useParams();
+  const [results, setResults] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let mounted = true;
-    api.getResults(taskId).then((res) => {
-      if (mounted) setData(res || {});
-    }).catch(() => {});
+    setLoading(true);
+    api.getAnalysisResults(analysisId)
+      .then((res) => {
+        if (!mounted) return;
+        setResults(res);
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        setError(err.message || 'Failed to load results.');
+      })
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
     return () => { mounted = false; };
-  }, [taskId]);
+  }, [analysisId]);
 
-  const score = data?.score ?? 0;
-  const strengths = data?.strengths || [];
-  const gaps = data?.gaps || [];
-  const keywords = data?.keywords || [];
+  if (loading) {
+    return <div>Loading analysis results...</div>;
+  }
+  if (error) {
+    return <p style={{ color: 'var(--error)' }}>Error: {error}</p>;
+  }
+  if (!results) {
+    return <p>No results found for this analysis.</p>;
+  }
+
+  const { score_overall: score = 0, strengths = [], gaps = [], keywords_extracted: keywords = [] } = results.result || {};
 
   return (
     <div>
@@ -43,8 +62,8 @@ function Results() {
       <Card title="Important Keywords" subtitle="In-demand skills detected">
         <TagList tags={keywords} />
         <div style={{ marginTop: 12, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <Link className="btn" to={`/suggestions/${encodeURIComponent(taskId)}`}>See Suggestions</Link>
-          <Link className="btn secondary" to={`/jobs/${encodeURIComponent(taskId)}`}>View Jobs</Link>
+          <Link className="btn" to={`/suggestions/${encodeURIComponent(analysisId)}`}>See Suggestions</Link>
+          <Link className="btn secondary" to={`/jobs/${encodeURIComponent(analysisId)}`}>View Jobs</Link>
         </div>
       </Card>
     </div>

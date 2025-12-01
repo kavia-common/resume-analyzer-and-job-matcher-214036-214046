@@ -9,46 +9,76 @@ import { api } from '../services/api';
  * AnalysisStatus: Polls task status and forwards to next step when complete.
  */
 function AnalysisStatus() {
-  const { taskId } = useParams();
+  const { analysisId } = useParams();
   const navigate = useNavigate();
-  const [status, setStatus] = useState({ state: 'queued', progress: 0 });
+  const [status, setStatus] = useState(null);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let mounted = true;
     const poll = async () => {
+      if (!mounted) return;
       try {
-        const s = await api.getStatus(taskId);
+        const s = await api.getAnalysisStatus(analysisId);
         if (!mounted) return;
-        setStatus(s || {});
-        if (s?.state === 'completed') {
-          navigate(`/results/${encodeURIComponent(taskId)}`);
-        } else if (s?.state === 'failed') {
-          alert('Analysis failed');
+
+        setStatus(s);
+
+        if (s?.status === 'complete' || s?.status === 'completed') {
+          navigate(`/results/${encodeURIComponent(analysisId)}`);
+        } else if (s?.status === 'failed') {
+          setError(s?.result?.message || 'Analysis failed. Please try again.');
+          clearInterval(intervalId);
         }
-      } catch {
-        // ignore transient errors
+      } catch (err) {
+        if (!mounted) return;
+        // Stop polling on critical errors
+        setError('Could not retrieve analysis status.');
+        clearInterval(intervalId);
       }
     };
-    poll();
-    const id = setInterval(poll, 2000);
+
+    poll(); // Initial call
+    const intervalId = setInterval(poll, 3000);
+
     return () => {
       mounted = false;
-      clearInterval(id);
+      clearInterval(intervalId);
     };
-  }, [taskId, navigate]);
+  }, [analysisId, navigate]);
+  
+  const handleCancel = async () => {
+    try {
+      await api.cancelAnalysis(analysisId);
+      navigate('/history');
+    } catch(err) {
+      setError('Failed to cancel analysis.');
+    }
+  }
 
-  const pct = Math.max(0, Math.min(100, status?.progress ?? 0));
+  const progress = status?.progress ?? 0;
+  const pct = Math.max(0, Math.min(100, progress));
+  const currentStatus = status?.status || 'queued';
 
   return (
     <div>
       <Stepper steps={['Upload/URL', 'Analyze', 'Results', 'Suggestions', 'Jobs']} current={1} />
-      <Card title="Analyzing your profile..." subtitle={`Task: ${taskId}`}>
-        <div className="progress">
-          <div className="progress-bar" style={{ width: `${pct}%` }} />
-        </div>
-        <p className="subtitle" style={{ marginTop: 8 }}>
-          Status: {status?.state || 'unknown'} • {pct}%
-        </p>
+      <Card title="Analyzing your profile..." subtitle={`Analysis ID: ${analysisId}`}>
+        {error ? (
+          <p style={{ color: 'var(--error)' }}>Error: {error}</p>
+        ) : (
+          <>
+            <div className="progress">
+              <div className="progress-bar" style={{ width: `${pct}%` }} />
+            </div>
+            <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8}}>
+              <p className="subtitle" style={{ margin: 0 }}>
+                Status: {currentStatus} • {pct}%
+              </p>
+              <button className="btn secondary" onClick={handleCancel}>Cancel</button>
+            </div>
+          </>
+        )}
       </Card>
     </div>
   );
