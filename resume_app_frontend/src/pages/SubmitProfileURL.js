@@ -10,7 +10,6 @@ import { api } from '../services/api';
  */
 function SubmitProfileURL() {
   const [url, setUrl] = useState('');
-  const [targetRole, setTargetRole] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -21,7 +20,7 @@ function SubmitProfileURL() {
     setLoading(true);
     setError('');
     try {
-      const response = await api.submitProfileURL(url, targetRole);
+      const response = await api.submitProfileURL(url);
       const analysisId = response?.analysis_id;
       if (!analysisId) throw new Error('Did not receive analysis ID.');
       navigate(`/status/${encodeURIComponent(analysisId)}`);
@@ -42,10 +41,6 @@ function SubmitProfileURL() {
           <div className="form-row">
             <label htmlFor="url">Profile URL</label>
             <input id="url" name="url" type="url" placeholder="https://www.linkedin.com/in/..." required value={url} onChange={(e) => setUrl(e.target.value)} />
-          </div>
-          <div className="form-row">
-            <label htmlFor="targetRole">Target role (optional)</label>
-            <input id="targetRole" name="targetRole" type="text" placeholder="e.g., Data Scientist" value={targetRole} onChange={(e) => setTargetRole(e.target.value)} />
           </div>
           {error && <p style={{ color: 'var(--error)', margin: '0 0 12px' }}>Error: {error}</p>}
           <button className="btn" type="submit" disabled={loading}>{loading ? 'Submitting...' : 'Start Analysis'}</button>

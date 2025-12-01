@@ -34,26 +34,22 @@ function Suggestions() {
     return () => { mounted = false; };
   }, [analysisId]);
 
-  const handleToggleAck = (id) => {
-    setAcknowledged(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
-      return next;
-    });
-  };
-  
-  const handleSaveChanges = async () => {
+  const handleToggleAck = async (id) => {
     try {
-      await api.acknowledgeSuggestions(analysisId, Array.from(acknowledged));
-      // TODO: Show a success message
+      await api.acknowledgeSuggestion(analysisId, id);
+      setAcknowledged(prev => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        return next;
+      });
     } catch(err) {
-      setError(err.message || 'Failed to save changes.');
+      setError(err.message || 'Failed to update suggestion.');
     }
-  }
+  };
 
   if (loading) {
     return <div>Loading suggestions...</div>;
@@ -89,11 +85,6 @@ function Suggestions() {
               </li>
             ))}
           </ul>
-        )}
-         {suggestions.length > 0 && (
-          <button className="btn secondary" onClick={handleSaveChanges} style={{marginTop: 12}}>
-            Save Changes
-          </button>
         )}
       </Card>
       <Card title="Required Skills" subtitle="Skills to add or emphasize based on your target role">

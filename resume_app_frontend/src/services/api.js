@@ -39,19 +39,17 @@ async function http(method, path, { headers = {}, body, isForm = false, params }
  */
 export const api = {
   // PUBLIC_INTERFACE
-  async uploadResume(file, targetRole, location) {
+  async uploadResume(file) {
     const form = new FormData();
     form.append('file', file);
     form.append('user_id', MOCK_USER_ID);
-    if (targetRole) form.append('targetRole', targetRole);
-    if (location) form.append('location', location);
     return http('POST', '/api/v1/resumes/upload', { body: form, isForm: true });
   },
 
   // PUBLIC_INTERFACE
-  async submitProfileURL(url, targetRole) {
+  async submitProfileURL(url) {
     return http('POST', '/api/v1/profiles/submit-url', {
-      body: { url, user_id: MOCK_USER_ID, targetRole },
+      body: { profile_url: url, user_id: MOCK_USER_ID },
     });
   },
 
@@ -66,9 +64,9 @@ export const api = {
   },
   
   // PUBLIC_INTERFACE
-  async acknowledgeSuggestions(analysisId, suggestionIds) {
+  async acknowledgeSuggestion(analysisId, suggestionId) {
     return http('POST', `/api/v1/analysis/${encodeURIComponent(analysisId)}/suggestions/ack`, { 
-      body: { ids: suggestionIds }
+      body: { suggestion_id: suggestionId }
     });
   },
 
