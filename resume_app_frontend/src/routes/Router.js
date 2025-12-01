@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import Home from '../pages/Home';
 import UploadResume from '../pages/UploadResume';
 import SubmitProfileURL from '../pages/SubmitProfileURL';
@@ -15,9 +15,8 @@ import History from '../pages/History';
  */
 function Router() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route index element={<Home />} />
+    <Routes>
+      <Route index element={<Home />} />
         <Route path="/upload" element={<UploadResume />} />
         <Route path="/submit-url" element={<SubmitProfileURL />} />
         <Route path="/status/:analysisId" element={<AnalysisStatus />} />
@@ -27,7 +26,6 @@ function Router() {
         <Route path="/history" element={<History />} />
         <Route path="*" element={<Home />} />
       </Routes>
-    </BrowserRouter>
   );
 }
 
